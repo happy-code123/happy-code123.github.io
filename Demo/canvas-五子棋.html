@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>五子棋</title>
+    <style>
+        html,body{
+            display:flex;
+            flex-flow: column nowrap;
+            justify-content: center;
+            align-items:center;
+        }
+        button{
+            margin-bottom:5px;
+        }
+        canvas{  background:#AE8350;  }
+
+    </style>
+
+</head>
+<body>
+<button>play again</button>
+<button>back step</button>
+<canvas width="790px" height="790"></canvas>
+
+<script>
+
+    (function(){
+
+        var whiteChess = new Image();
+        whiteChess.src="./img/w.png";
+        var blackChess = new Image();
+        blackChess.src="./img/b.png";
+
+        var currentChess = 1;   //默认是1是白棋，  2代表黑棋
+        var nextChess;
+        //将所有的棋子存入数组，0代表没有棋子
+        var chess =[];
+        for(let i=0;i<=15;i++){
+//            chess.push([]);
+//            var row =chess[i];
+                chess[i]=[];
+            for(let j=0;j<=15;j++){
+                chess[i].push(0);       //0 代表无棋子，1代表白棋，2代表黑棋
+            }
+        }
+//        console.log(chess);
+
+        var backstepX;
+        var backstepY;
+
+        var canvas = document.querySelector("canvas");
+        var ctx = canvas.getContext("2d");
+        drawBoald();
+
+        var button1 = document.querySelectorAll('button')[0];
+        var button2 = document.querySelectorAll('button')[1];
+        //paly again点击事件
+        button1.onclick=function (){
+            ctx.clearRect(0,0,790,790);
+            drawBoald();
+            for(let i=0;i<=15;i++){
+//            chess.push([]);
+//            var row =chess[i];
+                chess[i]=[];
+                for(let j=0;j<=15;j++){
+                    chess[i].push(0);       //0 代表无棋子，1代表白棋，2代表黑棋
+                }
+            }
+            canvas.addEventListener("click",eventFunc);
+        };
+        /*back step 事件*/
+        button2.addEventListener("click",function(){
+            ctx.clearRect(0,0,790,790);
+            drawBoald();
+
+
+            chess[(backstepX-20)/50][(backstepY-20)/50]=0;
+
+            for(var z=0; z<=15;z++){
+                for(var x=0;x<=15;x++){
+                    if(chess[z][x]==1){
+                        ctx.drawImage(whiteChess,((z*50)+20)- whiteChess.width/2,((x*50)+20)-whiteChess.height/2);
+                    }
+                    if(chess[z][x]==2){
+                        ctx.drawImage(blackChess,((z*50)+20)- blackChess.width/2,((x*50)+20)-blackChess.height/2);
+                    }
+                }
+
+            }
+
+
+        });
+
+        /**
+         * 监听 canvas的是点击事件，
+         */
+        canvas.addEventListener("click",eventFunc);
+        function eventFunc(e){
+            var x= e.offsetX;
+            var y= e.offsetY;
+            drawChess(x,y);
+        }
+
+
+
+
+        /**
+         * 绘制棋盘
+         */
+        function drawBoald(){
+            for(var i=0;i<=15;i++){
+                ctx.beginPath();
+                ctx.moveTo(i*50+20,20);
+                ctx.lineTo(i*50+20,770);
+                ctx.strokeStyle="#fff";
+                ctx.stroke();
+            }
+            for(var j=0;j<=15;j++){
+                ctx.beginPath();
+                ctx.moveTo(20,j*50+20);
+                ctx.lineTo(770,j*50+20);
+                ctx.strokeStyle="#fff";
+                ctx.stroke();
+            }
+        }
+
+        /**
+         * 绘制棋子，并且交替棋子
+         * @param x
+         * @param y
+         */
+        function drawChess(x,y){
+            //规范棋子的位置
+            x= Math.round((x-20)/50)*50+20;
+            y= Math.round((y-20)/50)*50+20;
+
+
+            //判断棋子，下一个棋子换成另一种棋子
+            if(currentChess== 1){
+                nextChess=whiteChess;
+            }else{
+                nextChess=blackChess;
+            }
+
+            if(!isAllowChess(x,y)) return;  //判断允不允许下棋，不允许下棋就中断
+
+
+            ctx.drawImage(nextChess,x-nextChess.width/2,y-nextChess.height/2);
+            chess[(x-20)/50][(y-20)/50]=currentChess;   //每下的一个棋存入数组中
+
+            backstepX=x;
+            backstepY=y;
+
+
+            //判断输赢
+            if(judgeWin((x-20)/50,(y-20)/50)){
+                ctx.save();
+                ctx.fillStyle="red";
+                ctx.font="60px sans-serif";
+                ctx.textAlign="center";
+
+                if(currentChess==1){
+                    ctx.fillText("白棋获胜",395,395)
+                }else if(currentChess==2){
+                    ctx.fillText("黒棋获胜",395,395)
+                }
+                ctx.restore();
+                canvas.removeEventListener("click",eventFunc);
+            }
+
+
+            currentChess= currentChess==1 ?2:1;
+
+        }
+
+        /**
+         * 允不允许落子
+         *允许放回true, 不允许返回 false
+         */
+        function isAllowChess(x,y){
+            //判断： 超出边界 和 已经落过子的位置不允许下棋
+            if(x<20||x>770||y>770||y<20){
+                return false;
+            }else if(chess[(x-20)/50][(y-20)/50]>0){
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * 判断输赢
+         */
+        function judgeWin(x,y){
+            if(winTop(x,y)) return true;
+            if(winLeft(x,y)) return true;
+            if(winOblique1(x,y)) return true;
+            if(winOblique2(x,y)) return true;
+
+
+        }
+
+        /**
+         * 判断垂直方向的输赢
+         */
+        function winTop(i,j){
+            var c=currentChess;
+            for (; j >= 0 && chess[i][j]== c; j--){  //向左跑，找到棋盘的边缘或者不是当前落下棋
+            };
+            var count = 0;
+            for (j++; j < 15 && chess[i][j]==c; j++){
+                count++;
+            }
+            if (count >= 5) return true;
+
+        }
+
+        /**
+         * 判断水平方向的输赢
+         * @param i
+         * @param j
+         * @returns {boolean}
+         */
+        function winLeft(i,j){
+            var c=currentChess;
+            for (; i >= 0 && chess[i][j]== c; i--){//向左跑，找到棋盘的边缘或者不是当前落下棋
+            }
+            var count = 0;
+            for (i++; i < 15 && chess[i][j]==c; i++){
+                count++;
+            }
+            if (count >= 5) return true;
+        }
+
+        /**
+         * 判断 斜向 的输赢
+         * @param i
+         * @param j
+         * @returns {boolean}
+         */
+        function winOblique1(i,j){
+            var c= currentChess;
+            for(;i>=0&&j>=0&&chess[i][j]==c;i--,j--){
+
+            }
+            var count=0;
+            for(i++,j++;i<=15&&j<=15&&chess[i][j]==c;i++,j++){
+                count++;
+            }
+            if(count>=5) return true;
+
+        }
+        function winOblique2(i,j){
+            var c= currentChess;
+            for(;i>=0&&j>=0&&chess[i][j]==c;i--,j++){
+
+            }
+            var count=0;
+            for(i++,j--;i<=15&&j<=15&&chess[i][j]==c;i++,j--){
+                count++;
+            }
+            if(count>=5) return true;
+
+        }
+    })()
+
+
+</script>
+</body>
+</html>
